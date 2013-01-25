@@ -31,9 +31,42 @@ uint32_t num_coins(const vector<uint32_t>& coins) {
 	return num;
 }
 
+uint32_t calculate_gcd(uint32_t m, uint32_t n) {
+	if ((m % n) == 0)
+		return n;
+	else
+		return calculate_gcd(n, m % n);
+}
+
+uint32_t gcd_vector(const vector<uint32_t>& numbers) {
+	uint32_t gcd = numbers[0];
+	if (gcd == 1 && numbers.size() > 1)
+		gcd=numbers[1];
+
+	for (auto n : numbers) {
+		if (n != 1)
+			gcd = calculate_gcd(gcd, n);
+	}
+
+	return gcd;
+}
+
+bool greedy_can_be_used(const vector<uint32_t>& coins) {
+	uint32_t gcd_coins = gcd_vector(coins);
+	if (coins.size() == 1 || gcd_coins >= coins[1]) {
+		return true;
+	}
+
+	return false;
+}
+
 vector<uint32_t> calculateMinimumCoins(const vector<uint32_t>& coins, uint32_t value){
 	vector<uint32_t> ret(coins.size(), 0);
 	map<int, vector<uint32_t> > DP;
+
+	if (greedy_can_be_used(coins)) {
+		return calculateMinimumCoins_greedy(coins, value);
+	}
 
 	for (int i=coins[0]; i<=value; i++) {
 		vector<uint32_t> tmp(coins.size(), 0);
