@@ -23,7 +23,7 @@ vector<uint32_t> calculateMinimumCoins_greedy(const vector<uint32_t>& coins, uin
 	return ret;
 }
 
-uint32_t sum_num_coins(const vector<uint32_t>& coins) {
+uint32_t num_coins(const vector<uint32_t>& coins) {
 	uint32_t num = 0;
 	for (int c = 0; c<coins.size(); c++)
 		num+=coins[c];
@@ -33,26 +33,54 @@ uint32_t sum_num_coins(const vector<uint32_t>& coins) {
 
 vector<uint32_t> calculateMinimumCoins(const vector<uint32_t>& coins, uint32_t value){
 	vector<uint32_t> ret(coins.size(), 0);
-
 	map<int, vector<uint32_t> > DP;
 
-	vector<uint32_t> tmp(coins.size(), 0);
-
-	for (int i=1; i<value; i++) {
+	for (int i=coins[0]; i<=value; i++) {
 		vector<uint32_t> tmp(coins.size(), 0);
 
-		int min_first=-1,min_second=-1,min_numcoins;
+		bool perfect_coin=false;
 		for (int j=0; j<coins.size(); j++) {
-			if (coins[i] == value) {
+			if (coins[j] == i) {
 				tmp[j] = 1;
+				perfect_coin=true;
+				DP[i] = tmp;			
+			}
+		}
+		if (!perfect_coin) {
+			int min_first=-1,min_second=-1,min_numcoins=value+1;
+
+			for (int m=coins[0]; m<i; m++) {
+				int candidate = num_coins(DP[m])+num_coins(DP[i-m]);
+				if (candidate < min_numcoins) {
+					min_numcoins = candidate;
+					min_first = m;
+					min_second=i-m;
+				}
+			}
+			if (min_first < 0 || min_second < 0) {
+				cerr << "ERROR: Cannot make " << i << " with current coins" << endl;
 				break;
 			}
 
-		}
 
-		DP[i] = tmp;
+			for (int coin_index=0; coin_index<coins.size(); coin_index++) {
+				tmp[coin_index]  = DP[min_first][coin_index];
+				tmp[coin_index] += DP[min_second][coin_index];
+			}
+
+			DP[i] = tmp;
+		}
 	}
-    
+
+	ret=DP[value];
+#ifdef DEBUG
+	cout << "Returning " << endl;
+	for (uint32_t c : DP[value]) {
+		cout << c << " ";
+	}
+	cout << endl;
+#endif
+
 	return ret;
 }
 
@@ -60,7 +88,7 @@ int main(){
 	vector<uint32_t> tmp(5, 0);
 	tmp[2] = 4;
 	tmp[4] = 2;
-	assert(sum_num_coins(tmp) == 6);
+	assert(num_coins(tmp) == 6);
 	
 	//number of coins to use
 	uint32_t nCoins = 50;
