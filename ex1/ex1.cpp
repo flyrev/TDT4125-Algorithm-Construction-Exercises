@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <chrono>
 #include <map>
+#include <tuple>
 
 using namespace std;
 using namespace std::placeholders;
@@ -60,7 +61,76 @@ bool greedy_can_be_used(const vector<uint32_t>& coins) {
 	return false;
 }
 
-vector<uint32_t> calculateMinimumCoins(const vector<uint32_t>& coins, uint32_t value){
+vector<uint32_t> make_coin_vector(map<uint32_t, tuple<uint32_t, uint32_t, uint32_t > >& DP, const vector<uint32_t>& coins, uint32_t value) {
+	vector<uint32_t> res(coins.size(), 0);	
+
+	//tuple<uint32_t, uint32_t, uint32_t> curr_tuple = DP[value];
+	auto curr_tuple = DP[value];
+	
+	if (get<2>(curr_tuple) == -1)
+		res[get<1>(curr_tuple)]++;
+	else {
+		uint32_t first = get<1>(curr_tuple);
+		uint32_t second = get<2>(curr_tuple);
+		vector<uint32_t> tmp1 = make_coin_vector(DP, coins, first);
+		vector<uint32_t> tmp2 = make_coin_vector(DP, coins, second);
+
+		for (int i=0; i<coins.size(); i++) {
+			res[i] += tmp1[i];
+			res[i] += tmp2[i];
+		}
+	}
+	
+	return res;
+}
+
+vector<uint32_t> calculateMinimumCoins_pointers(const vector<uint32_t>& coins, uint32_t value){
+	// tuple: total_number_of_coins, start_pointer, end_pointer
+	map<uint32_t, tuple<uint32_t, uint32_t, uint32_t > > DP;
+
+	/*
+	if (greedy_can_be_used(coins)) {
+		return calculateMinimumCoins_greedy(coins, value);
+		}*/
+
+	for (int i=coins[0]; i<=value; i++) {
+		vector<uint32_t> tmp(coins.size(), 0);
+
+		bool perfect_coin=false;
+		for (int j=0; j<coins.size(); j++) {
+			if (coins[j] == i) {
+				tmp[j] = 1;
+				perfect_coin=true;
+				DP[i] = make_tuple(1, coins[j], -1);
+			}
+		}
+		if (!perfect_coin) {
+			int min_first=-1,min_second=-1,min_numcoins=value+1;
+
+			for (int m=coins[0]; m<i; m++) {
+				int candidate = get<0>(DP[m])+get<0>(DP[i-m]);
+				if (candidate < min_numcoins) {
+					min_numcoins = candidate;
+					min_first = m;
+					min_second=i-m;
+				}
+			}
+			if (min_first < 0 || min_second < 0) {
+				cerr << "ERROR: Cannot make " << i << " with current coins" << endl;
+				break;
+			}
+
+			DP[i] = make_tuple(min_numcoins, min_first, min_second);
+		}
+	}
+
+	
+	auto res = make_coin_vector(DP, coins, value);
+		
+	return res;
+}
+
+vector<uint32_t> calculateMinimumCoins_normal(const vector<uint32_t>& coins, uint32_t value){
 	vector<uint32_t> ret(coins.size(), 0);
 	map<int, vector<uint32_t> > DP;
 
@@ -117,7 +187,22 @@ vector<uint32_t> calculateMinimumCoins(const vector<uint32_t>& coins, uint32_t v
 	return ret;
 }
 
-int main(){
+vector<uint32_t> calculateMinimumCoins(const vector<uint32_t>& coins, uint32_t value){
+	cout << endl;
+	cout << "With pointers" << endl;
+	for (auto coin : calculateMinimumCoins_pointers(coins, value))
+		cout << coin << " ";
+	cout << endl;
+
+	cout << "Without pointers" << endl;
+	for (auto coin : calculateMinimumCoins_normal(coins, value))
+		cout << coin << " ";
+	cout << endl;
+
+	return calculateMinimumCoins_normal(coins, value);
+}
+
+int main(void) {
 	vector<uint32_t> tmp(5, 0);
 	tmp[2] = 4;
 	tmp[4] = 2;
