@@ -13,13 +13,10 @@ using namespace std::placeholders;
 vector<uint32_t> calculateMinimumCoins_greedy(const vector<uint32_t>& coins, uint32_t value){
 	vector<uint32_t> ret(coins.size(), 0);
 
-	// Greedy
 	for (int i=coins.size()-1; i>=0; i--) {
 		ret[i] = value/coins[i];
 		value -= ret[i] * coins[i];
 	}
-
-	//
     
 	return ret;
 }
@@ -64,10 +61,9 @@ bool greedy_can_be_used(const vector<uint32_t>& coins) {
 vector<uint32_t> make_coin_vector(map<uint32_t, tuple<uint32_t, uint32_t, uint32_t > >& DP, const vector<uint32_t>& coins, uint32_t value) {
 	vector<uint32_t> res(coins.size(), 0);	
 
-	//tuple<uint32_t, uint32_t, uint32_t> curr_tuple = DP[value];
 	auto curr_tuple = DP[value];
 	
-	if (get<2>(curr_tuple) == -1)
+	if (get<0>(curr_tuple) == 1)
 		res[get<1>(curr_tuple)]++;
 	else {
 		uint32_t first = get<1>(curr_tuple);
@@ -80,18 +76,13 @@ vector<uint32_t> make_coin_vector(map<uint32_t, tuple<uint32_t, uint32_t, uint32
 			res[i] += tmp2[i];
 		}
 	}
-	
+
 	return res;
 }
 
 vector<uint32_t> calculateMinimumCoins_pointers(const vector<uint32_t>& coins, uint32_t value){
 	// tuple: total_number_of_coins, start_pointer, end_pointer
 	map<uint32_t, tuple<uint32_t, uint32_t, uint32_t > > DP;
-
-	/*
-	if (greedy_can_be_used(coins)) {
-		return calculateMinimumCoins_greedy(coins, value);
-		}*/
 
 	for (int i=coins[0]; i<=value; i++) {
 		vector<uint32_t> tmp(coins.size(), 0);
@@ -101,11 +92,13 @@ vector<uint32_t> calculateMinimumCoins_pointers(const vector<uint32_t>& coins, u
 			if (coins[j] == i) {
 				tmp[j] = 1;
 				perfect_coin=true;
-				DP[i] = make_tuple(1, coins[j], -1);
+				DP[i] = make_tuple(1, j, 0);
+				break;
 			}
 		}
 		if (!perfect_coin) {
-			int min_first=-1,min_second=-1,min_numcoins=value+1;
+			uint32_t min_numcoins=value+1;
+			uint32_t min_first,min_second;
 
 			for (int m=coins[0]; m<i; m++) {
 				int candidate = get<0>(DP[m])+get<0>(DP[i-m]);
@@ -115,10 +108,6 @@ vector<uint32_t> calculateMinimumCoins_pointers(const vector<uint32_t>& coins, u
 					min_second=i-m;
 				}
 			}
-			if (min_first < 0 || min_second < 0) {
-				cerr << "ERROR: Cannot make " << i << " with current coins" << endl;
-				break;
-			}
 
 			DP[i] = make_tuple(min_numcoins, min_first, min_second);
 		}
@@ -126,7 +115,6 @@ vector<uint32_t> calculateMinimumCoins_pointers(const vector<uint32_t>& coins, u
 
 	
 	auto res = make_coin_vector(DP, coins, value);
-		
 	return res;
 }
 
@@ -150,7 +138,7 @@ vector<uint32_t> calculateMinimumCoins_normal(const vector<uint32_t>& coins, uin
 			}
 		}
 		if (!perfect_coin) {
-			int min_first=-1,min_second=-1,min_numcoins=value+1;
+			uint32_t min_first,min_second,min_numcoins=value+1;
 
 			for (int m=coins[0]; m<i; m++) {
 				int candidate = num_coins(DP[m])+num_coins(DP[i-m]);
@@ -176,19 +164,11 @@ vector<uint32_t> calculateMinimumCoins_normal(const vector<uint32_t>& coins, uin
 	}
 
 	ret=DP[value];
-#ifdef DEBUG
-	cout << "Returning " << endl;
-	for (uint32_t c : DP[value]) {
-		cout << c << " ";
-	}
-	cout << endl;
-#endif
-
 	return ret;
 }
 
 vector<uint32_t> calculateMinimumCoins(const vector<uint32_t>& coins, uint32_t value){
-	cout << endl;
+	/*	cout << endl;
 	cout << "With pointers" << endl;
 	for (auto coin : calculateMinimumCoins_pointers(coins, value))
 		cout << coin << " ";
@@ -198,8 +178,8 @@ vector<uint32_t> calculateMinimumCoins(const vector<uint32_t>& coins, uint32_t v
 	for (auto coin : calculateMinimumCoins_normal(coins, value))
 		cout << coin << " ";
 	cout << endl;
-
-	return calculateMinimumCoins_normal(coins, value);
+	*/
+	return calculateMinimumCoins_pointers(coins, value);
 }
 
 int main(void) {
@@ -207,7 +187,11 @@ int main(void) {
 	tmp[2] = 4;
 	tmp[4] = 2;
 	assert(num_coins(tmp) == 6);
-	
+
+	vector<uint32_t> testCoins(1,1);
+	calculateMinimumCoins(testCoins, 1);
+
+
 	//number of coins to use
 	uint32_t nCoins = 50;
 	//max value of coins
@@ -239,5 +223,6 @@ int main(void) {
 	//evaluate the function
 	Evaluation evaluation = evaluateEx1( bind(calculateMinimumCoins, coins, value), bind( evaluateCertificateEx1, _1, coins, value ) );
 	printf("Function achieves accuracy %.5f and time %.5f\n", evaluation.accuracy, evaluation.seconds);
+
 
 }
